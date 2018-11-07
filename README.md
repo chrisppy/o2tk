@@ -9,6 +9,6 @@ The oxygen toolkit (or simply o2tk) is a modern cross-platform, easy to use, GUI
 
 **This project is a work-in-progress**
 
-This project adheres the the red-oxide contributors guidelines found [here](https://gitlab.com/red-oxide/org/raw/master/COMMUNICATION_GUIDELINES.md)
+This project adheres the the red-oxide communication guidelines found [here](https://gitlab.com/red-oxide/org/raw/master/COMMUNICATION_GUIDELINES.md)
 
 ![license](https://gitlab.com/red-oxide/org/raw/master/LGPLv3.svg.png)
