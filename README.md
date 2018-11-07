@@ -1,7 +1,8 @@
 [![Crates.io](https://img.shields.io/crates/v/o2tk.svg)](https://crates.io/crates/o2tk)
-[![Crates.io](https://img.shields.io/crates/dv/o2tk.svg)](https://crates.io/crates/o2tk)
 [![Build status](https://gitlab.com/red-oxide/o2tk/badges/master/build.svg)](https://gitlab.com/red-oxide/o2tk/commits/master)
+[![dependency status](https://deps.rs/repo/gitlab/red-oxide/o2tk/status.svg)](https://deps.rs/repo/gitlab/red-oxide/o2tk)
 [![Matrix](https://matrix.to/img/matrix-badge.svg)](https://matrix.to/#/#o2tk:matrix.org)
+[![Crates.io](https://img.shields.io/crates/dv/o2tk.svg)](https://crates.io/crates/o2tk)
 
 ![logo](https://gitlab.com/red-oxide/o2tk/raw/master/assets/logo.svg.png)
 
