@@ -1,0 +1,30 @@
+[package]
+name = "o2tk"
+version = "0.1.0"
+authors = ["Chris Palmer <chris@red-oxide.org>"]
+license = "LGPL-3.0-or-later"
+build = "build/build.rs"
+edition = "2018"
+description = "A modern cross-platform, easy to use, GUI toolkit to breathe life into your applications"
+homepage = "https://red-oxide.org/projects/o2tk"
+repository = "https://gitlab.com/red-oxide/o2tk"
+readme = "README.md"
+keywords = ["UI", "toolkit", "vulkan"]
+
+[badges]
+gitlab = { repository = "red-oxide/o2tk", branch = "master" }
+
+[dependencies]
+failure = "0.1"
+failure_derive = "0.1"
+ron = "0.4"
+serde = "1.0"
+uuid = { version = "0.7", features = ["serde", "v4"] }
+vulkano = "0.10"
+vulkano-shader-derive = "0.10"
+vulkano-win = "0.10"
+winit = "0.17"
+
+[[bin]]
+name = "o2tk-demo"
+path = "src/bin/o2tk-demo/main.rs"

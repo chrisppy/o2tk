@@ -1,0 +1,25 @@
+stages:
+  - build
+    
+# Commented until the stable release of Rust 2018    
+#rust-latest:%  stage: build
+#  image: rust:latest
+#  before_script:
+#    - apt-get install cmake
+#  script:
+#    - cargo build --verbose
+#    - cargo test --verbose
+#    - cargo test --release --verbose
+
+rust-nightly:
+  stage: build
+  image: rustlang/rust:nightly
+  before_script:
+    - apt-get update -yqq
+    - apt-get install -yqq curl libvulkan1 libxxf86vm-dev libosmesa6-dev libcurl4-openssl-dev libelf-dev libdw-dev cmake git gcc
+  script:
+    - rustc --version && cargo --version
+    - rustup component add rustfmt-preview --toolchain nightly
+    - cargo fmt --all -- --check
+    - cargo build --verbose
+    
