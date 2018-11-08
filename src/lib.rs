@@ -13,14 +13,14 @@
 
 #![deny(missing_docs)]
 
-#[macro_use]
-extern crate vulkano_shader_derive;
-
 pub mod enums;
 pub mod prelude;
 pub mod traits;
 pub mod utils;
 pub mod widgets;
+
+#[macro_use]
+extern crate vulkano_shader_derive;
 
 use self::{
     prelude::*,
@@ -42,7 +42,6 @@ use std::{
     mem,
     sync::Arc,
 };
-use uuid::Uuid;
 use vulkano::{
     self,
     buffer::{
@@ -85,6 +84,9 @@ use vulkano::{
 };
 use vulkano_win::VkSurfaceBuild;
 
+/// Identifier type for looking up widgets
+pub type Id = String;
+
 /// The position and color of the vertices to be drawn
 #[derive(Debug, Clone, Copy)]
 pub struct DrawVertex {
@@ -112,22 +114,18 @@ impl DrawVertex {
 /// The main UI structure
 #[derive(Clone)]
 pub struct Ui {
+    app_id:    String,
     theme:     Theme,
     instance:  Arc<Instance>,
-    ids:       Vec<Uuid>,
-    heirarchy: HashMap<Uuid, Vec<Uuid>>,
-    widgets:   HashMap<Uuid, Box<Widget>>,
-}
-
-impl Default for Ui {
-    fn default() -> Self {
-        Self::new()
-    }
+    ids:       Vec<Id>,
+    heirarchy: HashMap<Id, Vec<Id>>,
+    widgets:   HashMap<Id, Box<Widget>>,
 }
 
 impl Ui {
     /// Initialize the application
-    pub fn new() -> Self {
+    pub fn new(app_id: &str) -> Self {
+        let app_id = String::from(app_id);
         let theme = Theme::default();
 
         let instance = {
@@ -140,6 +138,7 @@ impl Ui {
         let ids = Vec::new();
 
         Self {
+            app_id,
             instance,
             theme,
             widgets,
@@ -148,20 +147,33 @@ impl Ui {
         }
     }
 
-    /// Generate a new ID
-    fn gen_id(&self) -> Uuid {
-        Uuid::new_v4()
+    /// Initialize themed application
+    pub fn new_with_theme(app_id: &str, path: &str) -> Result<Self, Error> {
+        let app_id = String::from(app_id);
+        let theme = Theme::build(path)?;
+
+        let instance = {
+            let extensions = vulkano_win::required_extensions();
+            Instance::new(None, &extensions, None).expect("failed to create Vulkan instance")
+        };
+
+        let widgets = HashMap::new();
+        let heirarchy = HashMap::new();
+        let ids = Vec::new();
+
+        Ok(Self {
+            app_id,
+            instance,
+            theme,
+            widgets,
+            heirarchy,
+            ids,
+        })
     }
 
     /// Retrieve all the widgets
-    fn widgets(&self) -> &HashMap<Uuid, Box<Widget>> {
+    fn widgets(&self) -> &HashMap<Id, Box<Widget>> {
         &self.widgets
-    }
-
-    /// Set the theme api
-    pub fn with_theme(&mut self, path: &str) -> Result<&mut Self, Error> {
-        self.theme = Theme::build(path)?;
-        Ok(self)
     }
 
     /// Retrieve the themes set by the api
@@ -186,7 +198,7 @@ impl Ui {
             let mut right_height_percent = 0.0;
 
             for child in children {
-                let widget = &self.widgets[&child];
+                let widget = &self.widgets.get(child).unwrap();
                 match widget.size() {
                     Size::Full => match widget.position() {
                         Position::TopLeft => {
@@ -349,23 +361,24 @@ impl Ui {
         let parent_id = widget.parent_id();
 
         let mut w = self.widgets.clone();
-        w.insert(id, widget);
+        w.insert(id.clone(), widget);
 
         let mut h = self.heirarchy.clone();
         if let Some(pid) = parent_id {
             match h.get_mut(&pid) {
                 None => {
-                    h.insert(pid, vec![id]);
+                    h.insert(pid, vec![id.clone()]);
                 }
                 Some(v) => {
-                    v.push(id);
+                    v.push(id.clone());
                 }
             }
         }
         let mut ids = self.ids.clone();
-        ids.push(id);
+        ids.push(id.clone());
 
         Self {
+            app_id: self.app_id,
             theme: self.theme,
             instance: self.instance,
             widgets: w,
@@ -496,7 +509,7 @@ impl Ui {
             let mut vertices: Vec<Vertex> = Vec::new();
 
             for id in &self.ids {
-                let widget = &self.widgets[&id];
+                let widget = &self.widgets.get(id).unwrap();
                 for vertex in widget.draw(&self)? {
                     vertices.push(Vertex {
                         position: vertex.position(),

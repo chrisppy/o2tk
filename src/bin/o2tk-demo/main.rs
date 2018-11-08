@@ -28,25 +28,25 @@ use o2tk::{
 };
 
 fn main() -> Result<(), Error> {
-    let ui = Ui::new();
+    let ui = Ui::new("org.red-oxide.o2tk-demo");
 
-    let wcontainer = WindowContainerBuilder::new()
+    let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
         .build(&ui)?;
 
-    let toolbar = ToolbarBuilder::new(wcontainer.id()).build(&ui)?;
+    let toolbar = ToolbarBuilder::new("toolbar", &wcontainer.id()).build(&ui)?;
 
-    let container = ContainerBuilder::new(wcontainer.id(), Position::Center).build(&ui)?;
+    let container = ContainerBuilder::new("container", &wcontainer.id(), Position::Center).build(&ui)?;
 
-    let child = ContainerBuilder::new(container.id(), Position::Left).build(&ui)?;
+    let child = ContainerBuilder::new("child", &container.id(), Position::Left).build(&ui)?;
 
-    let sec_child = ContainerBuilder::new(container.id(), Position::Right).build(&ui)?;
+    let sec_child = ContainerBuilder::new("sec_child", &container.id(), Position::Right).build(&ui)?;
 
-    let dock = DockBuilder::new(wcontainer.id())
+    let dock = DockBuilder::new("dock", &wcontainer.id())
         .with_orientation(Orientation::Bottom)
-        .with_length(75.0)
+        .with_length(50.0)
         .build(&ui)?;
 
     ui.add_widget(wcontainer.clone())

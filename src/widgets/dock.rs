@@ -11,15 +11,15 @@
 use self::super::super::{
     prelude::*,
     Error,
+    Id,
     Ui,
-    Uuid,
 };
 
 /// The Dock Widget
 #[derive(Clone)]
 pub struct Dock {
-    id:          Uuid,
-    parent_id:   Uuid,
+    id:          Id,
+    parent_id:   Id,
     size:        Size,
     position:    Position,
     color:       Color,
@@ -34,12 +34,12 @@ impl Widget for Dock {
         WidgetType::Dock
     }
 
-    fn id(&self) -> Uuid {
-        self.id
+    fn id(&self) -> Id {
+        self.clone().id
     }
 
-    fn parent_id(&self) -> Option<Uuid> {
-        Some(self.parent_id)
+    fn parent_id(&self) -> Option<Id> {
+        Some(self.clone().parent_id)
     }
 
     fn size(&self) -> Size {
@@ -88,20 +88,25 @@ impl DockTrait for Dock {
 /// The builder for the Dock widget
 #[derive(Clone, Default)]
 pub struct DockBuilder {
+    id:          Id,
     thickness:   DockSize,
     length:      f32,
     orientation: Orientation,
     color:       String,
-    parent_id:   Uuid,
+    parent_id:   Id,
     visible:     bool,
 }
 
 impl DockBuilder {
     /// Initialize the builder for the Dock widget
-    pub fn new(parent_id: Uuid) -> Self {
+    pub fn new<V>(id: V, parent_id: V) -> Self
+    where
+        V: Into<Id>,
+    {
         let length = 50.0;
         Self {
-            parent_id,
+            id: id.into(),
+            parent_id: parent_id.into(),
             length,
             visible: true,
             ..Self::default()
@@ -111,6 +116,7 @@ impl DockBuilder {
     /// Initialize the builder for the Dock widget from another Dock widget
     pub fn new_from_dock(dock: &Dock) -> Self {
         Self {
+            id:          dock.id(),
             thickness:   dock.thickness(),
             length:      dock.length(),
             orientation: dock.orientation(),
@@ -162,8 +168,8 @@ impl DockBuilder {
             Color::from_hex(self.clone().color)?
         };
         Ok(Box::new(Dock {
-            id: ui.gen_id(),
-            parent_id: self.parent_id,
+            id: self.clone().id,
+            parent_id: self.clone().parent_id,
             position,
             size,
             color,

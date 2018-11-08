@@ -18,8 +18,8 @@ use self::super::super::{
     },
     DrawVertex,
     Error,
+    Id,
     Ui,
-    Uuid,
 };
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -245,9 +245,9 @@ pub trait Widget: WidgetClone {
     /// The type of this widget
     fn widget_type(&self) -> WidgetType;
     /// The id of this widget
-    fn id(&self) -> Uuid;
+    fn id(&self) -> Id;
     /// The id of the parent of this widget, if one exist, and it will be None for Window Container
-    fn parent_id(&self) -> Option<Uuid>;
+    fn parent_id(&self) -> Option<Id>;
     /// Retrieve the size of the this widget in the format (width, height)
     fn size(&self) -> Size;
     /// Set the size of the this widget in the format (width, height)
@@ -277,7 +277,7 @@ pub trait Widget: WidgetClone {
         let position = self.position();
         let color = self.color();
         let mut parent_id = self.parent_id();
-        let mut parents: Vec<Uuid> = Vec::new();
+        let mut parents: Vec<Id> = Vec::new();
 
         loop {
             match parent_id {
