@@ -23,6 +23,8 @@ use o2tk::{
 };
 use std::f32::EPSILON;
 
+static APP_ID: &str = "org.red-oxide.test";
+
 pub fn compare(expected: Vec<[f32; 2]>, actual: Vec<[f32; 2]>) {
     let mut err = String::new();
 
@@ -69,16 +71,16 @@ pub fn compare(expected: Vec<[f32; 2]>, actual: Vec<[f32; 2]>) {
 }
 
 pub fn bar_vertices(orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
-    let ui = Ui::new();
+    let ui = Ui::new(APP_ID);
 
-    let wcontainer = WindowContainerBuilder::new()
+    let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
         .build(&ui)
         .unwrap();
 
-    let bar = ToolbarBuilder::new(wcontainer.id())
+    let bar = ToolbarBuilder::new("bar", &wcontainer.id())
         .with_orientation(orientation)
         .with_thickness(size)
         .build(&ui)
@@ -94,16 +96,16 @@ pub fn bar_vertices(orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
 }
 
 pub fn container_vertices(size: Size, position: Position) -> Vec<[f32; 2]> {
-    let ui = Ui::new();
+    let ui = Ui::new(APP_ID);
 
-    let wcontainer = WindowContainerBuilder::new()
+    let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
         .build(&ui)
         .unwrap();
 
-    let container = ContainerBuilder::new(wcontainer.id(), position)
+    let container = ContainerBuilder::new("container", &wcontainer.id(), position)
         .with_size(size)
         .build(&ui)
         .unwrap();
@@ -118,16 +120,16 @@ pub fn container_vertices(size: Size, position: Position) -> Vec<[f32; 2]> {
 }
 
 pub fn dock_vertices(length: f32, orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
-    let ui = Ui::new();
+    let ui = Ui::new(APP_ID);
 
-    let wcontainer = WindowContainerBuilder::new()
+    let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
         .build(&ui)
         .unwrap();
 
-    let dock = DockBuilder::new(wcontainer.id())
+    let dock = DockBuilder::new("dock", &wcontainer.id())
         .with_orientation(orientation)
         .with_thickness(size)
         .with_length(length)

@@ -12,8 +12,8 @@ use self::super::{
     super::{
         prelude::*,
         Error,
+        Id,
         Ui,
-        Uuid,
     },
     window::{
         dpi::LogicalSize,
@@ -26,7 +26,7 @@ use self::super::{
 #[derive(Clone)]
 pub struct WindowContainer {
     window: Box<WindowBuilder>,
-    id:     Uuid,
+    id:     Id,
     color:  Color,
 }
 
@@ -35,11 +35,11 @@ impl Widget for WindowContainer {
         WidgetType::WindowContainer
     }
 
-    fn id(&self) -> Uuid {
-        self.id
+    fn id(&self) -> Id {
+        self.clone().id
     }
 
-    fn parent_id(&self) -> Option<Uuid> {
+    fn parent_id(&self) -> Option<Id> {
         None
     }
 
@@ -82,6 +82,7 @@ impl WindowContainer {
 /// The builder for the Window Container widget
 #[derive(Clone)]
 pub struct WindowContainerBuilder {
+    id:             Id,
     position:       Position,
     color:          String,
     dimensions:     Option<LogicalSize>,
@@ -101,6 +102,7 @@ pub struct WindowContainerBuilder {
 impl Default for WindowContainerBuilder {
     fn default() -> Self {
         Self {
+            id:             String::new(),
             position:       Position::Center,
             color:          String::new(),
             dimensions:     None,
@@ -121,8 +123,14 @@ impl Default for WindowContainerBuilder {
 
 impl WindowContainerBuilder {
     /// Initialize the builder for the WindowContainer widget
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new<V>(id: V) -> Self
+    where
+        V: Into<Id>,
+    {
+        Self {
+            id: id.into(),
+            ..Self::default()
+        }
     }
 
     /// Set the color
@@ -215,7 +223,7 @@ impl WindowContainerBuilder {
 
     /// Build the WindowContainer widget
     pub fn build(&self, ui: &Ui) -> Result<Box<WindowContainer>, Error> {
-        let id = ui.gen_id();
+        let id = self.clone().id;
 
         let color = if self.color.is_empty() {
             Color::from_hex(ui.theme().window_container_color())?

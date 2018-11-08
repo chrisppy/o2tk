@@ -11,15 +11,15 @@
 use self::super::super::{
     prelude::*,
     Error,
+    Id,
     Ui,
-    Uuid,
 };
 
 /// The Toolbar Widget
 #[derive(Clone)]
 pub struct Toolbar {
-    id:          Uuid,
-    parent_id:   Uuid,
+    id:          Id,
+    parent_id:   Id,
     size:        Size,
     position:    Position,
     color:       Color,
@@ -34,12 +34,12 @@ impl Widget for Toolbar {
         WidgetType::Toolbar
     }
 
-    fn id(&self) -> Uuid {
-        self.id
+    fn id(&self) -> Id {
+        self.clone().id
     }
 
-    fn parent_id(&self) -> Option<Uuid> {
-        Some(self.parent_id)
+    fn parent_id(&self) -> Option<Id> {
+        Some(self.clone().parent_id)
     }
 
     fn size(&self) -> Size {
@@ -88,18 +88,23 @@ impl DockTrait for Toolbar {
 /// The builder for the Toolbar widget
 #[derive(Clone, Default)]
 pub struct ToolbarBuilder {
+    id:          Id,
     thickness:   DockSize,
     orientation: Orientation,
     color:       String,
-    parent_id:   Uuid,
+    parent_id:   Id,
     visible:     bool,
 }
 
 impl ToolbarBuilder {
     /// Initialize the builder for the Bar widget
-    pub fn new(parent_id: Uuid) -> Self {
+    pub fn new<V>(id: V, parent_id: V) -> Self
+    where
+        V: Into<Id>,
+    {
         Self {
-            parent_id,
+            id: id.into(),
+            parent_id: parent_id.into(),
             visible: true,
             ..Self::default()
         }
@@ -108,6 +113,7 @@ impl ToolbarBuilder {
     /// Initialize the builder for the Bar widget from another Bar widget
     pub fn new_from_toolbar(toolbar: &Toolbar) -> Self {
         Self {
+            id:          toolbar.id(),
             thickness:   toolbar.thickness(),
             orientation: toolbar.orientation(),
             color:       toolbar.color().into_string(),
@@ -153,8 +159,8 @@ impl ToolbarBuilder {
         };
 
         Ok(Box::new(Toolbar {
-            id: ui.gen_id(),
-            parent_id: self.parent_id,
+            id: self.clone().id,
+            parent_id: self.clone().parent_id,
             position,
             size,
             color,

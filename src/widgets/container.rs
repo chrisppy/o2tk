@@ -11,15 +11,15 @@
 use self::super::super::{
     prelude::*,
     Error,
+    Id,
     Ui,
-    Uuid,
 };
 
 /// The Container Widget
 #[derive(Clone)]
 pub struct Container {
-    id:        Uuid,
-    parent_id: Uuid,
+    id:        Id,
+    parent_id: Id,
     size:      Size,
     position:  Position,
     color:     Color,
@@ -31,12 +31,12 @@ impl Widget for Container {
         WidgetType::Container
     }
 
-    fn id(&self) -> Uuid {
-        self.id
+    fn id(&self) -> Id {
+        self.clone().id
     }
 
-    fn parent_id(&self) -> Option<Uuid> {
-        Some(self.parent_id)
+    fn parent_id(&self) -> Option<Id> {
+        Some(self.clone().parent_id)
     }
 
     fn size(&self) -> Size {
@@ -71,19 +71,24 @@ impl Widget for Container {
 /// The builder for the Container widget
 #[derive(Clone, Default)]
 pub struct ContainerBuilder {
+    id:        Id,
     size:      Size,
     position:  Position,
     color:     String,
-    parent_id: Uuid,
+    parent_id: Id,
     visible:   bool,
 }
 
 impl ContainerBuilder {
     /// Initialize the builder for the Container widget
-    pub fn new(parent_id: Uuid, position: Position) -> Self {
+    pub fn new<V>(id: V, parent_id: V, position: Position) -> Self
+    where
+        V: Into<Id>,
+    {
         Self {
+            id: id.into(),
             position,
-            parent_id,
+            parent_id: parent_id.into(),
             visible: true,
             ..Self::default()
         }
@@ -92,6 +97,7 @@ impl ContainerBuilder {
     /// Initialize the builder for the Container widget from another Container widget
     pub fn new_from_container(container: &Container) -> Self {
         Self {
+            id:        container.id(),
             size:      container.size(),
             position:  container.position(),
             color:     container.color().into_string(),
@@ -121,8 +127,8 @@ impl ContainerBuilder {
         };
 
         Ok(Box::new(Container {
-            id: ui.gen_id(),
-            parent_id: self.parent_id,
+            id: self.clone().id,
+            parent_id: self.clone().parent_id,
             position: self.position,
             size: self.size,
             color,
