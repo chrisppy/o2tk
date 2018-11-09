@@ -19,9 +19,6 @@ pub mod traits;
 pub mod utils;
 pub mod widgets;
 
-#[macro_use]
-extern crate vulkano_shader_derive;
-
 use self::{
     prelude::*,
     widgets::{
@@ -62,7 +59,6 @@ use vulkano::{
         Instance,
         PhysicalDevice,
     },
-    ordered_passes_renderpass,
     pipeline::{
         viewport::Viewport,
         GraphicsPipeline,
@@ -198,7 +194,7 @@ impl Ui {
             let mut right_height_percent = 0.0;
 
             for child in children {
-                let widget = &self.widgets.get(child).unwrap();
+                let widget = &self.widgets[child];
                 match widget.size() {
                     Size::Full => match widget.position() {
                         Position::TopLeft => {
@@ -509,7 +505,7 @@ impl Ui {
             let mut vertices: Vec<Vertex> = Vec::new();
 
             for id in &self.ids {
-                let widget = &self.widgets.get(id).unwrap();
+                let widget = &self.widgets[id];
                 for vertex in widget.draw(&self)? {
                     vertices.push(Vertex {
                         position: vertex.position(),
@@ -708,17 +704,15 @@ impl Ui {
 }
 
 mod vs {
-    #[derive(VulkanoShader)]
-    #[ty = "vertex"]
-    #[path = "src/utils/vs.glsl"]
-    #[allow(dead_code)]
-    struct Dummy;
+    vulkano_shaders::shader!{
+        ty: "vertex",
+        path: "src/utils/vs.glsl"
+    }
 }
 
 mod fs {
-    #[derive(VulkanoShader)]
-    #[ty = "fragment"]
-    #[path = "src/utils/fs.glsl"]
-    #[allow(dead_code)]
-    struct Dummy;
+    vulkano_shaders::shader!{
+        ty: "fragment",
+        path: "src/utils/fs.glsl"
+    }
 }
