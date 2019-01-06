@@ -1,0 +1,51 @@
+# Copyright (C) 2018-2019 red-oxide developers
+# This program is free software: you can redistribute it and/or modify it under the terms of the
+# GNU General Public License as published by the Free Software Foundation, version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+# the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+  
+[window_container]
+id = "wcontainer"
+title = "O2TK Demo"
+    
+    [dimensions]
+    0 = 800.0
+    1 = 600.0
+    
+    [min_dimensions]
+    0 = 800.0
+    1 = 600.0
+
+    [[window_container.container]]
+    id = "container"
+    position = "Center"
+
+        [[window_container.container.container]]
+        id = "child"
+        position = "Left"
+
+            [[window_container.container.container.label]]
+            id = "label"
+            position = "Center"
+            text = "Testing"
+            size = {Size = {0 = 50.0, 1 = 50.0}}
+            background_color = "#123456FF"
+            text_color = "#FFFFFFFF"
+        
+        [[window_container.container.container]]
+        id = "sec_child"
+        position = "Right"
+    
+    [[window_container.toolbar]]
+    id = "toolbar"
+
+    [[window_container.dock]]
+    id = "dock"
+    orientation = "Bottom"
+    length = 50.0
+    

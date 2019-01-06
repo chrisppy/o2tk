@@ -1,4 +1,4 @@
-// Copyright (C) 2018 red-oxide developers
+// Copyright © 2018-2019 red-oxide developers
 // This program is free software: you can redistribute it and/or modify it under the terms of the
 // GNU Lesser General Public License as published by the Free Software Foundation, version.
 //
@@ -12,14 +12,11 @@
 
 use o2tk::{
     prelude::*,
-    widgets::{
-        window::dpi::LogicalSize,
-        ContainerBuilder,
-        DockBuilder,
-        ToolbarBuilder,
-        WindowContainerBuilder,
-    },
-    Ui,
+    window::dpi::LogicalSize,
+    ContainerBuilder,
+    DockBuilder,
+    ToolbarBuilder,
+    WindowContainerBuilder,
 };
 use std::f32::EPSILON;
 
@@ -71,22 +68,20 @@ pub fn compare(expected: Vec<[f32; 2]>, actual: Vec<[f32; 2]>) {
 }
 
 pub fn bar_vertices(orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
-    let ui = Ui::new(APP_ID);
+    let mut ui = Ui::init(APP_ID).unwrap();
 
     let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
-        .build(&ui)
+        .build(&mut ui)
         .unwrap();
 
     let bar = ToolbarBuilder::new("bar", &wcontainer.id())
         .with_orientation(orientation)
         .with_thickness(size)
-        .build(&ui)
+        .build(&mut ui)
         .unwrap();
-
-    let ui = ui.add_widget(wcontainer).add_widget(bar.clone());
 
     let mut to_return = Vec::new();
     for vertex in bar.draw(&ui).unwrap() {
@@ -96,21 +91,19 @@ pub fn bar_vertices(orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
 }
 
 pub fn container_vertices(size: Size, position: Position) -> Vec<[f32; 2]> {
-    let ui = Ui::new(APP_ID);
+    let mut ui = Ui::init(APP_ID).unwrap();
 
     let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
-        .build(&ui)
+        .build(&mut ui)
         .unwrap();
 
     let container = ContainerBuilder::new("container", &wcontainer.id(), position)
         .with_size(size)
-        .build(&ui)
+        .build(&mut ui)
         .unwrap();
-
-    let ui = ui.add_widget(wcontainer).add_widget(container.clone());
 
     let mut to_return = Vec::new();
     for vertex in container.draw(&ui).unwrap() {
@@ -120,23 +113,21 @@ pub fn container_vertices(size: Size, position: Position) -> Vec<[f32; 2]> {
 }
 
 pub fn dock_vertices(length: f32, orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
-    let ui = Ui::new(APP_ID);
+    let mut ui = Ui::init(APP_ID).unwrap();
 
     let wcontainer = WindowContainerBuilder::new("wcontainer")
         .with_title("O2TK Demo")
         .with_dimensions(LogicalSize::new(800.0, 600.0))
         .with_min_dimensions(LogicalSize::new(800.0, 600.0))
-        .build(&ui)
+        .build(&mut ui)
         .unwrap();
 
     let dock = DockBuilder::new("dock", &wcontainer.id())
         .with_orientation(orientation)
         .with_thickness(size)
         .with_length(length)
-        .build(&ui)
+        .build(&mut ui)
         .unwrap();
-
-    let ui = ui.add_widget(wcontainer).add_widget(dock.clone());
 
     let mut to_return = Vec::new();
     for vertex in dock.draw(&ui).unwrap() {

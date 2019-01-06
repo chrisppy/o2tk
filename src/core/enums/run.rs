@@ -8,9 +8,20 @@
 //
 // You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-//! Traits and essential types intended for blanket imports.
-pub use self::super::{
-    core::prelude::*,
-    oml::MlBuild,
-    UiBuild,
-};
+/// The different run statuses of the application
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum Run {
+    /// The status to end the application
+    Done,
+    /// The status to redraw the screen when an UI element has changed
+    Redraw,
+    /// The status to let the application run continue to run when there is no drawing changes
+    Continue,
+}
+
+impl Default for Run {
+    /// The default Run
+    fn default() -> Run {
+        Run::Continue
+    }
+}

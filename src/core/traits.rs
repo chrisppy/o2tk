@@ -8,9 +8,14 @@
 //
 // You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-//! Traits and essential types intended for blanket imports.
-pub use self::super::{
-    core::prelude::*,
-    oml::MlBuild,
-    UiBuild,
+//! All the traits of the library
+
+mod dock;
+mod text;
+mod widget;
+
+pub use self::{
+    dock::*,
+    text::*,
+    widget::*,
 };
