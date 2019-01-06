@@ -1,4 +1,4 @@
-// Copyright (C) 2018 red-oxide developers
+// Copyright © 2018-2019 red-oxide developers
 // This program is free software: you can redistribute it and/or modify it under the terms of the
 // GNU Lesser General Public License as published by the Free Software Foundation, version.
 //
@@ -13,30 +13,34 @@
 
 #![deny(missing_docs)]
 
-pub mod enums;
 pub mod prelude;
-pub mod traits;
-pub mod utils;
-pub mod widgets;
 
-use self::{
-    prelude::*,
-    widgets::{
-        window::{
-            Event,
-            EventsLoop,
-            Window,
-        },
+mod core;
+mod oml;
+
+use self::core::widgets::window::{
+    Event,
+    Window,
+};
+pub use self::{
+    core::widgets::{
+        window,
+        Container,
+        ContainerBuilder,
+        Dock,
+        DockBuilder,
+        Label,
+        LabelBuilder,
+        Toolbar,
+        ToolbarBuilder,
         WindowContainer,
+        WindowContainerBuilder,
     },
+    prelude::*,
 };
-pub use failure::{
-    err_msg,
-    Error,
-};
+use parking_lot::Mutex;
 use std::{
     collections::HashMap,
-    mem,
     sync::Arc,
 };
 use vulkano::{
@@ -49,11 +53,17 @@ use vulkano::{
         AutoCommandBufferBuilder,
         DynamicState,
     },
-    device::Device,
+    device::{
+        Device,
+        DeviceExtensions,
+    },
     framebuffer::{
         Framebuffer,
+        FramebufferAbstract,
+        RenderPassAbstract,
         Subpass,
     },
+    image::SwapchainImage,
     impl_vertex,
     instance::{
         Instance,
@@ -73,54 +83,33 @@ use vulkano::{
         SwapchainCreationError,
     },
     sync::{
-        now,
+        self,
         FlushError,
         GpuFuture,
     },
 };
-use vulkano_win::VkSurfaceBuild;
+use vulkano_win::{
+    self,
+    VkSurfaceBuild,
+};
+use winit::EventsLoop;
 
-/// Identifier type for looking up widgets
-pub type Id = String;
-
-/// The position and color of the vertices to be drawn
-#[derive(Debug, Clone, Copy)]
-pub struct DrawVertex {
-    position: [f32; 2],
-    color:    [f32; 4],
-}
-
-impl DrawVertex {
-    /// Initialize a vertex
-    pub fn new(position: [f32; 2], color: [f32; 4]) -> Self {
-        Self { position, color }
-    }
-
-    /// Retrieve the position of the vertex
-    pub fn position(&self) -> [f32; 2] {
-        self.position
-    }
-
-    /// Retrieve the color of the vertex
-    pub fn color(&self) -> [f32; 4] {
-        self.color
-    }
-}
-
-/// The main UI structure
-#[derive(Clone)]
-pub struct Ui {
-    app_id:    String,
-    theme:     Theme,
-    instance:  Arc<Instance>,
-    ids:       Vec<Id>,
-    heirarchy: HashMap<Id, Vec<Id>>,
-    widgets:   HashMap<Id, Box<Widget>>,
-}
-
-impl Ui {
+/// Trait to allow building the UI
+pub trait UiBuild {
     /// Initialize the application
-    pub fn new(app_id: &str) -> Self {
+    fn init(app_id: &str) -> Result<Ui, Error>;
+    /// Initialize themed application
+    fn init_with_theme(app_id: &str, path: &str) -> Result<Ui, Error>;
+    /// Add a widget to the application
+    fn add_widget<'a>(&'a mut self, widget: Box<WidgetTrait>) -> &'a mut Ui;
+    /// run the application
+    fn run<F>(&self, wcontainer: Id, callback: F) -> Result<(), Error>
+    where
+        F: FnMut(Event, &Window) -> Run;
+}
+
+impl UiBuild for Ui {
+    fn init(app_id: &str) -> Result<Self, Error> {
         let app_id = String::from(app_id);
         let theme = Theme::default();
 
@@ -133,18 +122,10 @@ impl Ui {
         let heirarchy = HashMap::new();
         let ids = Vec::new();
 
-        Self {
-            app_id,
-            instance,
-            theme,
-            widgets,
-            heirarchy,
-            ids,
-        }
+        Ok(Ui::new(app_id, theme, instance, ids, heirarchy, widgets))
     }
 
-    /// Initialize themed application
-    pub fn new_with_theme(app_id: &str, path: &str) -> Result<Self, Error> {
+    fn init_with_theme(app_id: &str, path: &str) -> Result<Self, Error> {
         let app_id = String::from(app_id);
         let theme = Theme::build(path)?;
 
@@ -157,268 +138,79 @@ impl Ui {
         let heirarchy = HashMap::new();
         let ids = Vec::new();
 
-        Ok(Self {
-            app_id,
-            instance,
-            theme,
-            widgets,
-            heirarchy,
-            ids,
-        })
+        Ok(Ui::new(app_id, theme, instance, ids, heirarchy, widgets))
     }
 
-    /// Retrieve all the widgets
-    fn widgets(&self) -> &HashMap<Id, Box<Widget>> {
-        &self.widgets
-    }
-
-    /// Retrieve the themes set by the api
-    pub fn theme(&self) -> Theme {
-        self.clone().theme
-    }
-
-    fn normalize_sizes(&mut self) -> Result<(), Error> {
-        for children in self.heirarchy.values() {
-            let mut top_count: u16 = 0;
-            let mut hcenter_count: u16 = 0;
-            let mut bottom_count: u16 = 0;
-            let mut left_count: u16 = 0;
-            let mut vcenter_count: u16 = 0;
-            let mut right_count: u16 = 0;
-
-            let mut top_width_percent = 0.0;
-            let mut center_width_percent = 0.0;
-            let mut bottom_width_percent = 0.0;
-            let mut left_height_percent = 0.0;
-            let mut center_height_percent = 0.0;
-            let mut right_height_percent = 0.0;
-
-            for child in children {
-                let widget = &self.widgets[child];
-                match widget.size() {
-                    Size::Full => match widget.position() {
-                        Position::TopLeft => {
-                            top_count += 1;
-                            left_count += 1;
-                        }
-                        Position::Top => {
-                            top_count += 1;
-                            vcenter_count += 1;
-                        }
-                        Position::TopRight => {
-                            top_count += 1;
-                            right_count += 1;
-                        }
-                        Position::Left => {
-                            hcenter_count += 1;
-                            left_count += 1;
-                        }
-                        Position::Center => {
-                            hcenter_count += 1;
-                            vcenter_count += 1;
-                        }
-                        Position::Right => {
-                            hcenter_count += 1;
-                            right_count += 1;
-                        }
-                        Position::BottomLeft => {
-                            bottom_count += 1;
-                            left_count += 1;
-                        }
-                        Position::Bottom => {
-                            bottom_count += 1;
-                            vcenter_count += 1;
-                        }
-                        Position::BottomRight => {
-                            bottom_count += 1;
-                            right_count += 1;
-                        }
-                    },
-                    Size::Size(width, height) => match widget.position() {
-                        Position::TopLeft => {
-                            top_width_percent += width;
-                            left_height_percent += height;
-                        }
-                        Position::Top => {
-                            top_width_percent += width;
-                            center_height_percent += height;
-                        }
-                        Position::TopRight => {
-                            top_width_percent += width;
-                            right_height_percent += height;
-                        }
-                        Position::Left => {
-                            center_width_percent += width;
-                            left_height_percent += height;
-                        }
-                        Position::Center => {
-                            center_width_percent += width;
-                            center_height_percent += height;
-                        }
-                        Position::Right => {
-                            center_width_percent += width;
-                            right_height_percent += height;
-                        }
-                        Position::BottomLeft => {
-                            bottom_width_percent += width;
-                            left_height_percent += height;
-                        }
-                        Position::Bottom => {
-                            bottom_width_percent += width;
-                            center_height_percent += height;
-                        }
-                        Position::BottomRight => {
-                            bottom_width_percent += width;
-                            right_height_percent += height;
-                        }
-                    },
-                }
-            }
-
-            if top_width_percent > 100.0 {
-                return Err(err_msg("The top width exceeds the maximum 100%"));
-            } else if center_width_percent > 100.0 {
-                return Err(err_msg("The center width exceeds the maximum 100%"));
-            } else if bottom_width_percent > 100.0 {
-                return Err(err_msg("The bottome width exceeds the maximum 100%"));
-            } else if left_height_percent > 100.0 {
-                return Err(err_msg("The left height exceeds the maximum 100%"));
-            } else if center_height_percent > 100.0 {
-                return Err(err_msg("The center height exceeds the maximum 100%"));
-            } else if right_height_percent > 100.0 {
-                return Err(err_msg("The right height exceeds the maximum 100%"));
-            }
-            for child in children {
-                match self.widgets.get_mut(child) {
-                    None => {
-                        return Err(err_msg("NCError: Attempted to use an id that does not exist"));
-                    }
-                    Some(widget) => {
-                        if let Size::Full = widget.size() {
-                            let size = match widget.position() {
-                                Position::TopLeft => {
-                                    let full_width = (100.0 - top_width_percent) / f32::from(top_count);
-                                    let full_height = (100.0 - left_height_percent) / f32::from(left_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::Top => {
-                                    let full_width = (100.0 - top_width_percent) / f32::from(top_count);
-                                    let full_height = (100.0 - center_height_percent) / f32::from(vcenter_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::TopRight => {
-                                    let full_width = (100.0 - top_width_percent) / f32::from(top_count);
-                                    let full_height = (100.0 - right_height_percent) / f32::from(right_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::Left => {
-                                    let full_width = (100.0 - center_width_percent) / f32::from(hcenter_count);
-                                    let full_height = (100.0 - left_height_percent) / f32::from(left_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::Center => {
-                                    let full_width = (100.0 - center_width_percent) / f32::from(hcenter_count);
-                                    let full_height = (100.0 - center_height_percent) / f32::from(vcenter_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::Right => {
-                                    let full_width = (100.0 - center_width_percent) / f32::from(hcenter_count);
-                                    let full_height = (100.0 - right_height_percent) / f32::from(right_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::BottomLeft => {
-                                    let full_width = (100.0 - bottom_width_percent) / f32::from(bottom_count);
-                                    let full_height = (100.0 - left_height_percent) / f32::from(left_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::Bottom => {
-                                    let full_width = (100.0 - bottom_width_percent) / f32::from(bottom_count);
-                                    let full_height = (100.0 - center_height_percent) / f32::from(vcenter_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                                Position::BottomRight => {
-                                    let full_width = (100.0 - bottom_width_percent) / f32::from(bottom_count);
-                                    let full_height = (100.0 - right_height_percent) / f32::from(right_count);
-                                    Size::Size(full_width, full_height)
-                                }
-                            };
-                            widget.set_size(size);
-                        }
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// Add a widget to the application
-    pub fn add_widget(self, widget: Box<Widget>) -> Self {
+    fn add_widget<'a>(&'a mut self, widget: Box<WidgetTrait>) -> &'a mut Self {
         let id = widget.id();
         let parent_id = widget.parent_id();
 
-        let mut w = self.widgets.clone();
-        w.insert(id.clone(), widget);
+        self.widgets_mut().insert(id.clone(), Arc::new(Mutex::new(widget)));
 
-        let mut h = self.heirarchy.clone();
         if let Some(pid) = parent_id {
-            match h.get_mut(&pid) {
+            match self.heirarchy_mut().get_mut(&pid) {
                 None => {
-                    h.insert(pid, vec![id.clone()]);
+                    self.heirarchy_mut().insert(pid, vec![id.clone()]);
                 }
                 Some(v) => {
                     v.push(id.clone());
                 }
             }
         }
-        let mut ids = self.ids.clone();
-        ids.push(id.clone());
 
-        Self {
-            app_id: self.app_id,
-            theme: self.theme,
-            instance: self.instance,
-            widgets: w,
-            heirarchy: h,
-            ids,
-        }
+        self.ids_mut().push(id.clone());
+
+        self
     }
 
-    /// run the application
     #[allow(clippy::ref_in_deref)]
-    pub fn run<F>(&mut self, wcontainer: &WindowContainer, mut callback: F) -> Result<(), Error>
+    fn run<F>(&self, wcontainer_id: Id, mut callback: F) -> Result<(), Error>
     where
         F: FnMut(Event, &Window) -> Run,
     {
-        self.normalize_sizes()?;
-        let window = wcontainer.clone().window();
-        let mut events = EventsLoop::new();
+        let instance = self.clone().instance();
 
-        let surface = match window.build_vk_surface(&events, self.clone().instance) {
-            Err(e) => {
-                return Err(err_msg(e));
-            }
-            Ok(w) => w,
-        };
-
-        let instance = self.clone().instance;
         let physical = match PhysicalDevice::enumerate(&instance).next() {
             Some(val) => val,
             None => {
                 return Err(err_msg("no device available"));
             }
         };
+        println!("Using device: {} (type: {:?})", physical.name(), physical.ty());
 
-        let mut dimensions = {
-            let size = match surface.window().get_inner_size() {
-                None => {
-                    return Err(err_msg("Could not retrieve the window's inner size"));
+        let mut events_loop = EventsLoop::new();
+        let wcontainer = match self.widgets().get(&wcontainer_id) {
+            None => {
+                return Err(err_msg(format!(
+                    "Could not find the window container: {}",
+                    wcontainer_id
+                )));
+            }
+            Some(val) => {
+                let widget = val.lock();
+                match widget.clone().downcast::<WindowContainer>() {
+                    Err(_) => {
+                        return Err(err_msg("Could not downcast to the window container"));
+                    }
+                    Ok(val) => val,
                 }
-                Some(val) => val,
-            };
-            [size.width as u32, size.height as u32]
+            }
         };
+        let surface = match wcontainer
+            .window()
+            .build_vk_surface(&events_loop, self.clone().instance())
+        {
+            Err(e) => {
+                return Err(err_msg(e));
+            }
+            Ok(w) => w,
+        };
+        let window = surface.window();
 
-        let queue_family = match physical.queue_families().find(|&q| q.supports_graphics()) {
+        let queue_family = match physical
+            .queue_families()
+            .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
+        {
             Some(val) => val,
             None => {
                 return Err(err_msg("couldn't find a graphical queue family"));
@@ -426,9 +218,9 @@ impl Ui {
         };
 
         let (device, mut queues) = {
-            let device_ext = vulkano::device::DeviceExtensions {
+            let device_ext = DeviceExtensions {
                 khr_swapchain: true,
-                ..vulkano::device::DeviceExtensions::none()
+                ..DeviceExtensions::none()
             };
 
             match Device::new(
@@ -451,24 +243,25 @@ impl Ui {
             Some(val) => val,
         };
 
-        let (mut swapchain, mut images) = {
+        let dimensions = if let Some(dimensions) = window.get_inner_size() {
+            let dimensions: (u32, u32) = dimensions.to_physical(window.get_hidpi_factor()).into();
+            [dimensions.0, dimensions.1]
+        } else {
+            return Ok(());
+        };
+
+        let (mut swapchain, images) = {
             let caps = match surface.capabilities(physical) {
                 Err(err) => {
                     return Err(err_msg(format!("failed to get surface capabilities: {}", err)));
                 }
                 Ok(val) => val,
             };
-
+            let usage = caps.supported_usage_flags;
             let alpha = match caps.supported_composite_alpha.iter().next() {
                 None => return Err(err_msg("Next Composite alpha does not exist")),
                 Some(val) => val,
             };
-
-            dimensions = match caps.current_extent {
-                None => dimensions,
-                Some(val) => val,
-            };
-
             let format = caps.supported_formats[0].0;
 
             match Swapchain::new(
@@ -478,7 +271,7 @@ impl Ui {
                 format,
                 dimensions,
                 1,
-                caps.supported_usage_flags,
+                usage,
                 &queue,
                 SurfaceTransform::Identity,
                 alpha,
@@ -493,30 +286,7 @@ impl Ui {
             }
         };
 
-        let vertex_buffer = {
-            #[derive(Debug, Clone)]
-            struct Vertex {
-                position: [f32; 2],
-                color:    [f32; 4],
-            }
-
-            impl_vertex!(Vertex, position, color);
-
-            let mut vertices: Vec<Vertex> = Vec::new();
-
-            for id in &self.ids {
-                let widget = &self.widgets[id];
-                for vertex in widget.draw(&self)? {
-                    vertices.push(Vertex {
-                        position: vertex.position(),
-                        color:    vertex.color(),
-                    });
-                }
-            }
-
-            // TODO: change buffer
-            CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), vertices.into_iter()).unwrap()
-        };
+        // let mut draw_text = DrawText::new(device.clone(), queue.clone(), swapchain.clone(), &images);
 
         let vs = match vs::Shader::load(device.clone()) {
             Err(err) => {
@@ -577,23 +347,26 @@ impl Ui {
 
         let pipeline = Arc::new(gpipeline);
 
-        let mut framebuffers: Option<Vec<Arc<Framebuffer<_, _>>>> = None;
-
         let mut recreate_swapchain = false;
-        let mut previous_frame_end = Box::new(now(device.clone())) as Box<GpuFuture>;
+        let mut previous_frame_end = Box::new(sync::now(device.clone())) as Box<GpuFuture>;
+        let mut dynamic_state = DynamicState {
+            line_width: None,
+            viewports:  None,
+            scissors:   None,
+        };
+        let mut framebuffers = window_size_dependent_setup(&images, render_pass.clone(), &mut dynamic_state);
+
+        let mut vertices = build_vertices(&self)?;
 
         loop {
             previous_frame_end.cleanup_finished();
 
             if recreate_swapchain {
-                dimensions = {
-                    let size = match surface.window().get_inner_size() {
-                        None => {
-                            return Err(err_msg("Could not retrieve the window's inner size"));
-                        }
-                        Some(val) => val,
-                    };
-                    [size.width as u32, size.height as u32]
+                let dimensions = if let Some(dimensions) = window.get_inner_size() {
+                    let dimensions: (u32, u32) = dimensions.to_physical(window.get_hidpi_factor()).into();
+                    [dimensions.0, dimensions.1]
+                } else {
+                    return Ok(());
                 };
 
                 let (new_swapchain, new_images) = match swapchain.recreate_with_dimension(dimensions) {
@@ -606,30 +379,11 @@ impl Ui {
                     }
                 };
 
-                mem::replace(&mut swapchain, new_swapchain);
-                mem::replace(&mut images, new_images);
-
-                framebuffers = None;
-
+                swapchain = new_swapchain;
+                framebuffers = window_size_dependent_setup(&new_images, render_pass.clone(), &mut dynamic_state);
+                vertices = build_vertices(&self)?;
+                // draw_text = DrawText::new(device.clone(), queue.clone(), swapchain.clone(), &new_images);
                 recreate_swapchain = false;
-            }
-
-            if framebuffers.is_none() {
-                let new_framebuffers = Some(
-                    images
-                        .iter()
-                        .map(|image| {
-                            Arc::new(
-                                Framebuffer::start(render_pass.clone())
-                                    .add(image.clone())
-                                    .unwrap()
-                                    .build()
-                                    .unwrap(),
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                );
-                mem::replace(&mut framebuffers, new_framebuffers);
             }
 
             let (image_num, acquire_future) = match swapchain::acquire_next_image(swapchain.clone(), None) {
@@ -643,28 +397,20 @@ impl Ui {
                 }
             };
 
-            let dynamic_state = DynamicState {
-                line_width: None,
-                viewports:  Some(vec![Viewport {
-                    origin:      [0.0, 0.0],
-                    dimensions:  [dimensions[0] as f32, dimensions[1] as f32],
-                    depth_range: 0.0..1.0,
-                }]),
-                scissors:   None,
-            };
+            let clear_values = vec![[0.0, 0.0, 0.0, 1.0].into()];
 
+            let vertex_buffer =
+                CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), vertices.clone().into_iter())
+                    .unwrap();
             let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(device.clone(), queue.family())
                 .unwrap()
-                .begin_render_pass(
-                    framebuffers.as_ref().unwrap()[image_num].clone(),
-                    false,
-                    vec![[0.0, 0.0, 1.0, 1.0].into()],
-                )
+                .begin_render_pass(framebuffers[image_num].clone(), false, clear_values)
                 .unwrap()
                 .draw(pipeline.clone(), &dynamic_state, vertex_buffer.clone(), (), ())
                 .unwrap()
                 .end_render_pass()
                 .unwrap()
+                //.draw_text(&mut draw_text, image_num)
                 .build()
                 .unwrap();
 
@@ -681,16 +427,16 @@ impl Ui {
                 }
                 Err(FlushError::OutOfDate) => {
                     recreate_swapchain = true;
-                    previous_frame_end = Box::new(now(device.clone())) as Box<_>;
+                    previous_frame_end = Box::new(sync::now(device.clone())) as Box<_>;
                 }
                 Err(err) => {
                     println!("{:?}", err);
-                    previous_frame_end = Box::new(now(device.clone())) as Box<_>;
+                    previous_frame_end = Box::new(sync::now(device.clone())) as Box<_>;
                 }
             }
 
             let mut done = false;
-            events.poll_events(|event| match callback(event, surface.window()) {
+            events_loop.poll_events(|event| match callback(event, surface.window()) {
                 Run::Continue => (),
                 Run::Done => done = true,
                 Run::Redraw => recreate_swapchain = true,
@@ -704,15 +450,281 @@ impl Ui {
 }
 
 mod vs {
-    vulkano_shaders::shader!{
+    vulkano_shaders::shader! {
         ty: "vertex",
-        path: "src/utils/vs.glsl"
+        path: "src/shaders/vs.glsl"
     }
 }
 
 mod fs {
-    vulkano_shaders::shader!{
+    vulkano_shaders::shader! {
         ty: "fragment",
-        path: "src/utils/fs.glsl"
+        path: "src/shaders/fs.glsl"
     }
+}
+
+/// This method is called once during initialization, then again whenever the window is resized
+fn window_size_dependent_setup(
+    images: &[Arc<SwapchainImage<Window>>],
+    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    dynamic_state: &mut DynamicState,
+) -> Vec<Arc<FramebufferAbstract + Send + Sync>> {
+    let dimensions = images[0].dimensions();
+
+    let viewport = Viewport {
+        origin:      [0.0, 0.0],
+        dimensions:  [dimensions[0] as f32, dimensions[1] as f32],
+        depth_range: 0.0..1.0,
+    };
+    dynamic_state.viewports = Some(vec![viewport]);
+
+    images
+        .iter()
+        .map(|image| {
+            Arc::new(
+                Framebuffer::start(render_pass.clone())
+                    .add(image.clone())
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+            ) as Arc<FramebufferAbstract + Send + Sync>
+        })
+        .collect::<Vec<_>>()
+}
+
+#[derive(Debug, Clone)]
+struct Vertex {
+    position: [f32; 2],
+    color:    [f32; 4],
+}
+
+impl_vertex!(Vertex, position, color);
+
+fn build_vertices(ui: &Ui) -> Result<Vec<Vertex>, Error> {
+    let ui = normalize_sizes(ui)?;
+    let mut vertices = Vec::new();
+
+    for id in ui.ids() {
+        let widgets = ui.widgets();
+        let widget = widgets[id].lock();
+        for vertex in widget.draw(&ui)? {
+            vertices.push(Vertex {
+                position: vertex.position(),
+                color:    vertex.color(),
+            });
+        }
+        match &widget.widget_type() {
+            WidgetType::Label => {
+                if let Some(label) = widget.downcast_ref::<Label>() {
+                    if label.visible() {
+                        // let size =
+                        //   dimensions[1] as f32 * (label.size().y() / 100.0) * (label.text_size() /
+                        // 100.0); draw_text.queue_text(
+                        //    0.0,
+                        //    12.0 + size,
+                        //    size,
+                        //    label.text_color().into_scaled_rgba_float(),
+                        //    label.label().as_str(),
+                        //);
+                    }
+                }
+            }
+            WidgetType::Button => {
+                unimplemented!()
+                // if let Some(button) = widget.downcast_ref::<Button>() {
+                //    if button.visible() {
+                // let size =
+                //   dimensions[1] as f32 * (label.size().y() / 100.0) * (label.text_size() /
+                // 100.0); draw_text.queue_text(
+                //    0.0,
+                //    12.0 + size,
+                //    size,
+                //    label.text_color().into_scaled_rgba_float(),
+                //    label.label().as_str(),
+                //);
+                //    }
+                // }
+            }
+            _ => (),
+        }
+    }
+
+    Ok(vertices)
+}
+
+fn normalize_sizes(ui: &Ui) -> Result<Ui, Error> {
+    let ui = ui.clone();
+    for children in ui.heirarchy().values() {
+        let mut top_count: u16 = 0;
+        let mut hcenter_count: u16 = 0;
+        let mut bottom_count: u16 = 0;
+        let mut left_count: u16 = 0;
+        let mut vcenter_count: u16 = 0;
+        let mut right_count: u16 = 0;
+
+        let mut top_width_percent = 0.0;
+        let mut center_width_percent = 0.0;
+        let mut bottom_width_percent = 0.0;
+        let mut left_height_percent = 0.0;
+        let mut center_height_percent = 0.0;
+        let mut right_height_percent = 0.0;
+
+        for child in children {
+            let widgets = &ui.widgets();
+            let widget = widgets[child].lock();
+            match widget.size() {
+                Size::Full => match widget.position() {
+                    Position::TopLeft => {
+                        top_count += 1;
+                        left_count += 1;
+                    }
+                    Position::Top => {
+                        top_count += 1;
+                        vcenter_count += 1;
+                    }
+                    Position::TopRight => {
+                        top_count += 1;
+                        right_count += 1;
+                    }
+                    Position::Left => {
+                        hcenter_count += 1;
+                        left_count += 1;
+                    }
+                    Position::Center => {
+                        hcenter_count += 1;
+                        vcenter_count += 1;
+                    }
+                    Position::Right => {
+                        hcenter_count += 1;
+                        right_count += 1;
+                    }
+                    Position::BottomLeft => {
+                        bottom_count += 1;
+                        left_count += 1;
+                    }
+                    Position::Bottom => {
+                        bottom_count += 1;
+                        vcenter_count += 1;
+                    }
+                    Position::BottomRight => {
+                        bottom_count += 1;
+                        right_count += 1;
+                    }
+                },
+                Size::Size(width, height) => match widget.position() {
+                    Position::TopLeft => {
+                        top_width_percent += width;
+                        left_height_percent += height;
+                    }
+                    Position::Top => {
+                        top_width_percent += width;
+                        center_height_percent += height;
+                    }
+                    Position::TopRight => {
+                        top_width_percent += width;
+                        right_height_percent += height;
+                    }
+                    Position::Left => {
+                        center_width_percent += width;
+                        left_height_percent += height;
+                    }
+                    Position::Center => {
+                        center_width_percent += width;
+                        center_height_percent += height;
+                    }
+                    Position::Right => {
+                        center_width_percent += width;
+                        right_height_percent += height;
+                    }
+                    Position::BottomLeft => {
+                        bottom_width_percent += width;
+                        left_height_percent += height;
+                    }
+                    Position::Bottom => {
+                        bottom_width_percent += width;
+                        center_height_percent += height;
+                    }
+                    Position::BottomRight => {
+                        bottom_width_percent += width;
+                        right_height_percent += height;
+                    }
+                },
+            }
+        }
+
+        if top_width_percent > 100.0 {
+            return Err(err_msg("The top width exceeds the maximum 100%"));
+        } else if center_width_percent > 100.0 {
+            return Err(err_msg("The center width exceeds the maximum 100%"));
+        } else if bottom_width_percent > 100.0 {
+            return Err(err_msg("The bottome width exceeds the maximum 100%"));
+        } else if left_height_percent > 100.0 {
+            return Err(err_msg("The left height exceeds the maximum 100%"));
+        } else if center_height_percent > 100.0 {
+            return Err(err_msg("The center height exceeds the maximum 100%"));
+        } else if right_height_percent > 100.0 {
+            return Err(err_msg("The right height exceeds the maximum 100%"));
+        }
+        for child in children {
+            match ui.widgets().get(child) {
+                None => {
+                    return Err(err_msg("NCError: Attempted to use an id that does not exist"));
+                }
+                Some(widget) => {
+                    let mut widget = widget.lock();
+                    if let Size::Full = widget.size() {
+                        let size = match widget.position() {
+                            Position::TopLeft => {
+                                let full_width = (100.0 - top_width_percent) / f32::from(top_count);
+                                let full_height = (100.0 - left_height_percent) / f32::from(left_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::Top => {
+                                let full_width = (100.0 - top_width_percent) / f32::from(top_count);
+                                let full_height = (100.0 - center_height_percent) / f32::from(vcenter_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::TopRight => {
+                                let full_width = (100.0 - top_width_percent) / f32::from(top_count);
+                                let full_height = (100.0 - right_height_percent) / f32::from(right_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::Left => {
+                                let full_width = (100.0 - center_width_percent) / f32::from(hcenter_count);
+                                let full_height = (100.0 - left_height_percent) / f32::from(left_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::Center => {
+                                let full_width = (100.0 - center_width_percent) / f32::from(hcenter_count);
+                                let full_height = (100.0 - center_height_percent) / f32::from(vcenter_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::Right => {
+                                let full_width = (100.0 - center_width_percent) / f32::from(hcenter_count);
+                                let full_height = (100.0 - right_height_percent) / f32::from(right_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::BottomLeft => {
+                                let full_width = (100.0 - bottom_width_percent) / f32::from(bottom_count);
+                                let full_height = (100.0 - left_height_percent) / f32::from(left_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::Bottom => {
+                                let full_width = (100.0 - bottom_width_percent) / f32::from(bottom_count);
+                                let full_height = (100.0 - center_height_percent) / f32::from(vcenter_count);
+                                Size::Size(full_width, full_height)
+                            }
+                            Position::BottomRight => {
+                                let full_width = (100.0 - bottom_width_percent) / f32::from(bottom_count);
+                                let full_height = (100.0 - right_height_percent) / f32::from(right_count);
+                                Size::Size(full_width, full_height)
+                            }
+                        };
+                        widget.set_size(size);
+                    }
+                }
+            }
+        }
+    }
+    Ok(ui)
 }

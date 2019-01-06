@@ -8,9 +8,30 @@
 //
 // You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#![deny(missing_docs)]
+
 //! Traits and essential types intended for blanket imports.
 pub use self::super::{
-    core::prelude::*,
-    oml::MlBuild,
-    UiBuild,
+    color::Color,
+    enums::{
+        DockSize,
+        Orientation,
+        Position,
+        Run,
+        Size,
+        WidgetType,
+    },
+    theme::Theme,
+    traits::{
+        DockTrait,
+        TextTrait,
+        WidgetTrait,
+    },
+    DrawVertex,
+    Id,
+    Ui,
+};
+pub use failure::{
+    err_msg,
+    Error,
 };
