@@ -1,11 +1,11 @@
 [package]
 name = "o2tk"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Chris Palmer <chris@red-oxide.org>"]
 license = "LGPL-3.0-or-later"
 build = "build/build.rs"
 edition = "2018"
-description = "A modern cross-platform, easy to use, GUI toolkit to breathe life into your applications"
+description = "The oxygen toolkit (or simply o2tk) is a modern cross-platform and ergonomic GUI toolkit to breathe life into creating applications"
 homepage = "https://red-oxide.org/projects/o2tk"
 repository = "https://gitlab.com/red-oxide/o2tk"
 readme = "README.md"
@@ -19,11 +19,15 @@ downcast-rs = "1.0"
 failure = "0.1"
 parking_lot = "0.7"
 read_color = "1.0"
+rusttype = "0.7"
 serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
 vulkano = "0.11"
 vulkano-shaders = "0.11"
-vulkano_text = "0.9"
 vulkano-win = "0.11"
 winit = "0.18"
+
+[dependencies.indexmap]
+version = "1.0"
+features = ["serde-1"]

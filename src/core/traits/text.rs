@@ -36,9 +36,3 @@ where
         Box::new(self.clone())
     }
 }
-
-// impl Clone for Box<TextTrait> {
-// fn clone(&self) -> Box<TextTrait> {
-// self.clone_box()
-// }
-// }

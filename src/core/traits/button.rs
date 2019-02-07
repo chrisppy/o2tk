@@ -8,30 +8,28 @@
 //
 // You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-//! Traits and essential types intended for blanket imports.
-pub use self::super::{
-    color::Color,
-    enums::{
-        DockSize,
-        Orientation,
-        Position,
-        Run,
-        Size,
-        WidgetType,
-    },
-    theme::Theme,
-    traits::{
-        ButtonTrait,
-        DockTrait,
-        TextTrait,
-        WidgetTrait,
-    },
-    DrawVertex,
-    Id,
-    Ui,
-    Vertex,
+use self::super::super::prelude::{
+    Color,
+    WidgetTrait,
 };
-pub use failure::{
-    err_msg,
-    Error,
-};
+
+/// The trait the Button widgets implement
+pub trait ButtonTrait: ButtonTraitClone + WidgetTrait {
+    /// The color when the button is selected
+    fn selected_color(&self) -> Color;
+}
+
+/// Allow the Button Trait to be cloned
+pub trait ButtonTraitClone {
+    /// Clone the boxed widget
+    fn clone_box(&self) -> Box<ButtonTrait>;
+}
+
+impl<T> ButtonTraitClone for T
+where
+    T: 'static + ButtonTrait + Clone,
+{
+    fn clone_box(&self) -> Box<ButtonTrait> {
+        Box::new(self.clone())
+    }
+}

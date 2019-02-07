@@ -102,13 +102,13 @@ impl ContainerBuilder {
     }
 
     /// Set the color
-    pub fn with_color<'a, V: Into<String>>(&'a mut self, color: V) -> &'a mut Self {
+    pub fn with_color<V: Into<String>>(&mut self, color: V) -> &mut Self {
         self.color = color.into();
         self
     }
 
     /// Set the size
-    pub fn with_size<'a>(&'a mut self, size: Size) -> &'a mut Self {
+    pub fn with_size(&mut self, size: Size) -> &mut Self {
         self.size = size;
         self
     }

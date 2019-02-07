@@ -129,25 +129,25 @@ impl WindowContainerBuilder {
     }
 
     /// Set the color
-    pub fn with_color<'a, V: Into<String>>(&'a mut self, color: V) -> &'a mut Self {
+    pub fn with_color<V: Into<String>>(&mut self, color: V) -> &mut Self {
         self.color = color.into();
         self
     }
 
     /// Requests the window to be of specific dimensions.
-    pub fn with_dimensions<'a>(&'a mut self, size: LogicalSize) -> &'a mut Self {
+    pub fn with_dimensions(&mut self, size: LogicalSize) -> &mut Self {
         self.dimensions = Some(size);
         self
     }
 
     /// Sets a minimum dimension size for the window
-    pub fn with_min_dimensions<'a>(&'a mut self, min_size: LogicalSize) -> &'a mut Self {
+    pub fn with_min_dimensions(&mut self, min_size: LogicalSize) -> &mut Self {
         self.min_dimensions = Some(min_size);
         self
     }
 
     /// Sets a maximum dimension size for the window
-    pub fn with_max_dimensions<'a>(&'a mut self, max_size: LogicalSize) -> &'a mut Self {
+    pub fn with_max_dimensions(&mut self, max_size: LogicalSize) -> &mut Self {
         self.max_dimensions = Some(max_size);
         self
     }
@@ -162,56 +162,56 @@ impl WindowContainerBuilder {
     /// This only has an effect on desktop platforms.
     ///
     /// Due to a bug in XFCE, this has no effect on Xfwm.
-    pub fn with_resizable<'a>(&'a mut self, resizable: bool) -> &'a mut Self {
+    pub fn with_resizable(&mut self, resizable: bool) -> &mut Self {
         self.resizable = resizable;
         self
     }
 
     /// Requests a specific title for the window.
-    pub fn with_title<'a, T: Into<String>>(&'a mut self, title: T) -> &'a mut Self {
+    pub fn with_title<T: Into<String>>(&mut self, title: T) -> &mut Self {
         self.title = title.into();
         self
     }
 
     /// Sets the window fullscreen state. None means a normal window, Some(MonitorId)
     /// means a fullscreen window on that specific monitor
-    pub fn with_fullscreen<'a>(&'a mut self, monitor: Option<MonitorId>) -> &'a mut Self {
+    pub fn with_fullscreen(&mut self, monitor: Option<MonitorId>) -> &mut Self {
         self.fullscreen = monitor;
         self
     }
 
     /// Requests maximized mode.
-    pub fn with_maximized<'a>(&'a mut self, maximized: bool) -> &'a mut Self {
+    pub fn with_maximized(&mut self, maximized: bool) -> &mut Self {
         self.maximized = maximized;
         self
     }
 
     /// Sets whether the window will be initially hidden or visible.
-    pub fn with_visibility<'a>(&'a mut self, visible: bool) -> &'a mut Self {
+    pub fn with_visibility(&mut self, visible: bool) -> &mut Self {
         self.visible = visible;
         self
     }
 
     /// Sets whether the background of the window should be transparent.
-    pub fn with_transparency<'a>(&'a mut self, transparent: bool) -> &'a mut Self {
+    pub fn with_transparency(&mut self, transparent: bool) -> &mut Self {
         self.transparent = transparent;
         self
     }
 
     /// Sets whether the window should have a border, a title bar, etc.
-    pub fn with_decorations<'a>(&'a mut self, decorations: bool) -> &'a mut Self {
+    pub fn with_decorations(&mut self, decorations: bool) -> &mut Self {
         self.decorations = decorations;
         self
     }
 
     /// Sets whether or not the window will always be on top of other windows.
-    pub fn with_always_on_top<'a>(&'a mut self, always_on_top: bool) -> &'a mut Self {
+    pub fn with_always_on_top(&mut self, always_on_top: bool) -> &mut Self {
         self.always_on_top = always_on_top;
         self
     }
 
     /// Enables multitouch.
-    pub fn with_multitouch<'a>(&'a mut self) -> &'a mut Self {
+    pub fn with_multitouch(&mut self) -> &mut Self {
         self.multitouch = true;
         self
     }

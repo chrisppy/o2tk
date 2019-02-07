@@ -6,7 +6,7 @@
 
 ![logo](https://gitlab.com/red-oxide/o2tk/raw/master/assets/logo.svg.png)
 
-The oxygen toolkit (or simply o2tk) is a modern cross-platform, easy to use, GUI toolkit to breathe life into your applications
+The oxygen toolkit (or simply o2tk) is a modern cross-platform and ergonomic GUI toolkit to breathe life into creating applications
 
 **This project is a work-in-progress**
 

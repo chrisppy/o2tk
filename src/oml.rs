@@ -8,8 +8,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#![deny(missing_docs)]
-
 use self::super::{
     prelude::*,
     window::dpi::LogicalSize,
@@ -128,9 +126,7 @@ where
     r.read_to_end(&mut buf)?;
 
     match from_slice(&buf) {
-        Err(err) => {
-            return Err(err_msg(format!("Failed to load ui from slice: {}", err)));
-        }
+        Err(err) => Err(err_msg(format!("Failed to load ui from slice: {}", err))),
         Ok(val) => Ok(val),
     }
 }
@@ -207,7 +203,7 @@ impl MlBuild for Ui {
     }
 }
 
-fn add_window_container<'a>(ui: &'a mut Ui, widget: WindowContainerMarkup) -> Result<&'a mut Ui, Error> {
+fn add_window_container(ui: &mut Ui, widget: WindowContainerMarkup) -> Result<&mut Ui, Error> {
     let id = widget.id;
     let mut builder = WindowContainerBuilder::new(id.clone());
     builder.with_title(widget.title);
@@ -280,7 +276,7 @@ fn add_window_container<'a>(ui: &'a mut Ui, widget: WindowContainerMarkup) -> Re
     Ok(ui)
 }
 
-fn add_container<'a>(ui: &'a mut Ui, widget: ContainerMarkup, parent_id: Option<Id>) -> Result<&'a mut Ui, Error> {
+fn add_container(ui: &mut Ui, widget: ContainerMarkup, parent_id: Option<Id>) -> Result<&mut Ui, Error> {
     let id = widget.id;
     let parent_id = match parent_id {
         Some(val) => val,
@@ -332,7 +328,7 @@ fn add_container<'a>(ui: &'a mut Ui, widget: ContainerMarkup, parent_id: Option<
     Ok(ui)
 }
 
-fn add_toolbar<'a>(ui: &'a mut Ui, widget: ToolbarMarkup, parent_id: Option<Id>) -> Result<&'a mut Ui, Error> {
+fn add_toolbar(ui: &mut Ui, widget: ToolbarMarkup, parent_id: Option<Id>) -> Result<&mut Ui, Error> {
     let id = widget.id;
     let parent_id = match parent_id {
         Some(val) => val,
@@ -387,7 +383,7 @@ fn add_toolbar<'a>(ui: &'a mut Ui, widget: ToolbarMarkup, parent_id: Option<Id>)
     Ok(ui)
 }
 
-fn add_dock<'a>(ui: &'a mut Ui, widget: DockMarkup, parent_id: Option<Id>) -> Result<&'a mut Ui, Error> {
+fn add_dock(ui: &mut Ui, widget: DockMarkup, parent_id: Option<Id>) -> Result<&mut Ui, Error> {
     let id = widget.id;
     let parent_id = match parent_id {
         Some(val) => val,
@@ -445,7 +441,7 @@ fn add_dock<'a>(ui: &'a mut Ui, widget: DockMarkup, parent_id: Option<Id>) -> Re
     Ok(ui)
 }
 
-fn add_label<'a>(ui: &'a mut Ui, widget: LabelMarkup, parent_id: Option<Id>) -> Result<&'a mut Ui, Error> {
+fn add_label(ui: &mut Ui, widget: LabelMarkup, parent_id: Option<Id>) -> Result<&mut Ui, Error> {
     let id = widget.id;
     let parent_id = match parent_id {
         Some(val) => val,

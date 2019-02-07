@@ -128,25 +128,25 @@ impl LabelBuilder {
     }
 
     /// Set the color
-    pub fn with_background_color<'a, V: Into<String>>(&'a mut self, bg_color: V) -> &'a mut Self {
+    pub fn with_background_color<V: Into<String>>(&mut self, bg_color: V) -> &mut Self {
         self.bg_color = bg_color.into();
         self
     }
 
     /// Set the color
-    pub fn with_text_color<'a, V: Into<String>>(&'a mut self, text_color: V) -> &'a mut Self {
+    pub fn with_text_color<V: Into<String>>(&mut self, text_color: V) -> &mut Self {
         self.text_color = text_color.into();
         self
     }
 
     /// Set the size
-    pub fn with_size<'a>(&'a mut self, size: Size) -> &'a mut Self {
+    pub fn with_size(&mut self, size: Size) -> &mut Self {
         self.size = size;
         self
     }
 
     /// Set the size
-    pub fn with_text_size<'a>(&'a mut self, text_size: f32) -> &'a mut Self {
+    pub fn with_text_size(&mut self, text_size: f32) -> &mut Self {
         self.text_size = text_size;
         self
     }
@@ -164,6 +164,12 @@ impl LabelBuilder {
         } else {
             Color::from_hex(self.clone().text_color)?
         };
+
+        if self.text_size <= 0.0 {
+            return Err(err_msg("The size must be greater than 0"));
+        } else if self.text_size > 100.0 {
+            return Err(err_msg("The size must be 100 or less"));
+        }
 
         let widget = Box::new(Label {
             id: self.clone().id,

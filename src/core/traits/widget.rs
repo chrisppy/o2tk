@@ -17,6 +17,7 @@ use self::super::super::prelude::{
     Position,
     Size,
     Ui,
+    Vertex,
     WidgetType,
 };
 use downcast_rs::{
@@ -95,26 +96,6 @@ impl DObjectBuilder {
             bl_vertex,
             br_vertex,
         }
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-struct Vertex {
-    x: f32,
-    y: f32,
-}
-
-impl Vertex {
-    fn x(self) -> f32 {
-        self.x
-    }
-
-    fn y(self) -> f32 {
-        self.y
-    }
-
-    fn as_array(self) -> [f32; 2] {
-        [self.x - 1.0, self.y - 1.0]
     }
 }
 
@@ -331,10 +312,10 @@ pub trait WidgetTrait: WidgetClone + Downcast {
             .with_color(color)
             .build();
 
-        let tr_vertex = dobject.tr_vertex().as_array();
-        let tl_vertex = dobject.tl_vertex().as_array();
-        let bl_vertex = dobject.bl_vertex().as_array();
-        let br_vertex = dobject.br_vertex().as_array();
+        let tr_vertex = dobject.tr_vertex();
+        let tl_vertex = dobject.tl_vertex();
+        let bl_vertex = dobject.bl_vertex();
+        let br_vertex = dobject.br_vertex();
         let color = dobject.color().into_scaled_rgba_float();
 
         vertices.push(DrawVertex {

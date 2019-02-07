@@ -12,7 +12,6 @@
 //! breathe life into your applications
 
 #![deny(missing_docs)]
-
 pub mod prelude;
 
 mod core;
@@ -38,6 +37,7 @@ pub use self::{
     },
     prelude::*,
 };
+use indexmap::IndexMap;
 use parking_lot::Mutex;
 use std::{
     collections::HashMap,
@@ -118,11 +118,10 @@ impl UiBuild for Ui {
             Instance::new(None, &extensions, None).expect("failed to create Vulkan instance")
         };
 
-        let widgets = HashMap::new();
+        let widgets = IndexMap::new();
         let heirarchy = HashMap::new();
-        let ids = Vec::new();
 
-        Ok(Ui::new(app_id, theme, instance, ids, heirarchy, widgets))
+        Ok(Ui::new(app_id, theme, instance, heirarchy, widgets))
     }
 
     fn init_with_theme(app_id: &str, path: &str) -> Result<Self, Error> {
@@ -134,11 +133,10 @@ impl UiBuild for Ui {
             Instance::new(None, &extensions, None).expect("failed to create Vulkan instance")
         };
 
-        let widgets = HashMap::new();
+        let widgets = IndexMap::new();
         let heirarchy = HashMap::new();
-        let ids = Vec::new();
 
-        Ok(Ui::new(app_id, theme, instance, ids, heirarchy, widgets))
+        Ok(Ui::new(app_id, theme, instance, heirarchy, widgets))
     }
 
     fn add_widget<'a>(&'a mut self, widget: Box<WidgetTrait>) -> &'a mut Self {
@@ -157,8 +155,6 @@ impl UiBuild for Ui {
                 }
             }
         }
-
-        self.ids_mut().push(id.clone());
 
         self
     }
@@ -356,7 +352,8 @@ impl UiBuild for Ui {
         };
         let mut framebuffers = window_size_dependent_setup(&images, render_pass.clone(), &mut dynamic_state);
 
-        let mut vertices = build_vertices(&self)?;
+        impl_vertex!(Vertex, position, color);
+        let mut vertices = build_vertices(&self, dimensions)?;
 
         loop {
             previous_frame_end.cleanup_finished();
@@ -381,8 +378,8 @@ impl UiBuild for Ui {
 
                 swapchain = new_swapchain;
                 framebuffers = window_size_dependent_setup(&new_images, render_pass.clone(), &mut dynamic_state);
-                vertices = build_vertices(&self)?;
-                // draw_text = DrawText::new(device.clone(), queue.clone(), swapchain.clone(), &new_images);
+                let a = build_vertices(&self, dimensions)?;
+                vertices = a;
                 recreate_swapchain = false;
             }
 
@@ -410,7 +407,6 @@ impl UiBuild for Ui {
                 .unwrap()
                 .end_render_pass()
                 .unwrap()
-                //.draw_text(&mut draw_text, image_num)
                 .build()
                 .unwrap();
 
@@ -449,20 +445,6 @@ impl UiBuild for Ui {
     }
 }
 
-mod vs {
-    vulkano_shaders::shader! {
-        ty: "vertex",
-        path: "src/shaders/vs.glsl"
-    }
-}
-
-mod fs {
-    vulkano_shaders::shader! {
-        ty: "fragment",
-        path: "src/shaders/fs.glsl"
-    }
-}
-
 /// This method is called once during initialization, then again whenever the window is resized
 fn window_size_dependent_setup(
     images: &[Arc<SwapchainImage<Window>>],
@@ -492,59 +474,65 @@ fn window_size_dependent_setup(
         .collect::<Vec<_>>()
 }
 
+mod vs {
+    vulkano_shaders::shader! {
+        ty: "vertex",
+        path: "src/shaders/vs.glsl"
+    }
+}
+
+mod fs {
+    vulkano_shaders::shader! {
+        ty: "fragment",
+        path: "src/shaders/fs.glsl"
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Vertex {
     position: [f32; 2],
     color:    [f32; 4],
 }
 
-impl_vertex!(Vertex, position, color);
-
-fn build_vertices(ui: &Ui) -> Result<Vec<Vertex>, Error> {
+fn build_vertices(ui: &Ui, window_size: [u32; 2]) -> Result<Vec<Vertex>, Error> {
     let ui = normalize_sizes(ui)?;
-    let mut vertices = Vec::new();
+    let h = window_size[1] as f32;
+    let w = window_size[0] as f32;
 
-    for id in ui.ids() {
-        let widgets = ui.widgets();
-        let widget = widgets[id].lock();
-        for vertex in widget.draw(&ui)? {
-            vertices.push(Vertex {
-                position: vertex.position(),
+    let mut vertices = Vec::new();
+    for widget in ui.widgets().values() {
+        let widget = widget.lock();
+        let v = widget.draw(&ui)?;
+        let mut vx1 = None;
+        let mut vx2 = None;
+        for (i, vertex) in v.iter().enumerate() {
+            let pos = vertex.position();
+            let vert = Vertex {
+                position: pos.as_array(),
                 color:    vertex.color(),
-            });
+            };
+            vertices.push(vert.clone());
+            if i == 1 {
+                vx1 = Some(pos);
+            } else if i == 4 {
+                vx2 = Some(pos);
+            }
         }
         match &widget.widget_type() {
             WidgetType::Label => {
                 if let Some(label) = widget.downcast_ref::<Label>() {
                     if label.visible() {
-                        // let size =
-                        //   dimensions[1] as f32 * (label.size().y() / 100.0) * (label.text_size() /
-                        // 100.0); draw_text.queue_text(
-                        //    0.0,
-                        //    12.0 + size,
-                        //    size,
-                        //    label.text_color().into_scaled_rgba_float(),
-                        //    label.label().as_str(),
-                        //);
+                        let text_size = label.text_size();
+                        let vx1 = vx1.unwrap();
+                        let vx2 = vx2.unwrap();
+                        let _x = ((vx1.x()) * w) / 2.0;
+                        let y1 = ((vx1.y()) * h) / 2.0;
+                        let y2 = ((vx2.y()) * h) / 2.0;
+                        let _size = (y1 - y2) * (text_size / 100.0);
                     }
                 }
             }
-            WidgetType::Button => {
-                unimplemented!()
-                // if let Some(button) = widget.downcast_ref::<Button>() {
-                //    if button.visible() {
-                // let size =
-                //   dimensions[1] as f32 * (label.size().y() / 100.0) * (label.text_size() /
-                // 100.0); draw_text.queue_text(
-                //    0.0,
-                //    12.0 + size,
-                //    size,
-                //    label.text_color().into_scaled_rgba_float(),
-                //    label.label().as_str(),
-                //);
-                //    }
-                // }
-            }
+            WidgetType::Button => unimplemented!(),
             _ => (),
         }
     }

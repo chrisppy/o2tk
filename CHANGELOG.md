@@ -4,4 +4,5 @@
     - Container 
     - Toolbar
     - Dock
+    - Button
 - Introduce a testing framework to verify widget vertices

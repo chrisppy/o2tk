@@ -122,25 +122,25 @@ impl DockBuilder {
     }
 
     /// Set the orientation
-    pub fn with_orientation<'a>(&'a mut self, orientation: Orientation) -> &'a mut Self {
+    pub fn with_orientation(&mut self, orientation: Orientation) -> &mut Self {
         self.orientation = orientation;
         self
     }
 
     /// Set the color
-    pub fn with_color<'a, V: Into<String>>(&'a mut self, color: V) -> &'a mut Self {
+    pub fn with_color<V: Into<String>>(&mut self, color: V) -> &mut Self {
         self.color = color.into();
         self
     }
 
     /// Set the length
-    pub fn with_length<'a>(&'a mut self, length: f32) -> &'a mut Self {
+    pub fn with_length(&mut self, length: f32) -> &mut Self {
         self.length = length;
         self
     }
 
     /// Set the dock size
-    pub fn with_thickness<'a>(&'a mut self, thickness: DockSize) -> &'a mut Self {
+    pub fn with_thickness(&mut self, thickness: DockSize) -> &mut Self {
         self.thickness = thickness;
         self
     }
