@@ -10,11 +10,13 @@
 
 //! All the traits of the library
 
+mod button;
 mod dock;
 mod text;
 mod widget;
 
 pub use self::{
+    button::*,
     dock::*,
     text::*,
     widget::*,

@@ -50,8 +50,8 @@ pub fn compare(expected: Vec<[f32; 2]>, actual: Vec<[f32; 2]>) {
             _ => "INVALID",
         };
 
-        let e = expected.get(i).unwrap();
-        let a = actual.get(i).unwrap();
+        let e = expected[i];
+        let a = actual[i];
 
         if (a[0] > e[0] + EPSILON) | (a[0] < e[0] - EPSILON) | (a[1] > e[1] + EPSILON) | (a[1] < e[1] - EPSILON) {
             err += format!(
@@ -85,7 +85,7 @@ pub fn bar_vertices(orientation: Orientation, size: DockSize) -> Vec<[f32; 2]> {
 
     let mut to_return = Vec::new();
     for vertex in bar.draw(&ui).unwrap() {
-        to_return.push(vertex.position());
+        to_return.push(vertex.position().as_array());
     }
     to_return
 }
@@ -107,7 +107,7 @@ pub fn container_vertices(size: Size, position: Position) -> Vec<[f32; 2]> {
 
     let mut to_return = Vec::new();
     for vertex in container.draw(&ui).unwrap() {
-        to_return.push(vertex.position());
+        to_return.push(vertex.position().as_array());
     }
     to_return
 }
@@ -131,7 +131,7 @@ pub fn dock_vertices(length: f32, orientation: Orientation, size: DockSize) -> V
 
     let mut to_return = Vec::new();
     for vertex in dock.draw(&ui).unwrap() {
-        to_return.push(vertex.position());
+        to_return.push(vertex.position().as_array());
     }
     to_return
 }

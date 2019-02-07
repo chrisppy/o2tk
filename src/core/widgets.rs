@@ -8,10 +8,9 @@
 //
 // You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#![deny(missing_docs)]
-
 //! All Widgets, utilities, traits, and enumerations
 
+mod button;
 mod container;
 mod dock;
 mod label;
@@ -20,6 +19,7 @@ pub mod window;
 mod window_container;
 
 pub use self::{
+    button::*,
     container::*,
     dock::*,
     label::*,
