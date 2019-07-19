@@ -5,6 +5,13 @@ The oxygen toolkit (or simply o2tk) is a modern cross-platform and ergonomic GUI
 
 **This project is a work-in-progress**
 
+## Goals
+
+- Built using vulkan
+- Simple to use
+
+## License
+
 ![license](https://github.com/red-oxide/org/raw/master/LGPLv3.svg.png)
 
 ## Authors
